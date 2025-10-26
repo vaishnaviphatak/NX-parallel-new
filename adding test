@@ -1,0 +1,9 @@
+import networkx as nx
+from nx_parallel.algorithms.traversal import all_simple_paths
+
+def test_all_simple_paths_parallel_matches_networkx():
+    G = nx.cycle_graph(6)
+    source, target = 0, 3
+    result_parallel = list(all_simple_paths(G, source, target))
+    result_sequential = list(nx.all_simple_paths(G, source, target))
+    assert sorted(result_parallel) == sorted(result_sequential)
