@@ -1,0 +1,7 @@
+import networkx as nx
+from nx_parallel.algorithms.traversal import all_simple_paths
+
+def benchmark_all_simple_paths():
+    for n in [100, 200, 300]:
+        G = nx.erdos_renyi_graph(n, 0.05, seed=42, directed=False)
+        all_simple_paths(G, 0, n - 1)
