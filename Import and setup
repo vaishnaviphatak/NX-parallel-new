@@ -1,0 +1,62 @@
+from joblib import Parallel, delayed
+import networkx as nx
+from networkx.utils.decorators import _dispatchable
+from nx_parallel.utils import default_chunker
+
+@_dispatchable(name="all_simple_paths", returns_graph=False)
+def all_simple_paths(G, source, target=None, cutoff=None, *, get_chunks=None, n_jobs=-1):
+    """
+    Parallel implementation of nx.all_simple_paths.
+
+    Parameters
+    ----------
+    G : graph
+        A NetworkX graph.
+    source : node or list of nodes
+        Starting node(s) for path search.
+    target : node, list, or None (optional)
+        Target node(s). If None, find paths to all other nodes.
+    cutoff : int, optional
+        Depth limit for path search.
+    get_chunks : callable, optional
+        Function to divide the source nodes into chunks for parallel processing.
+    n_jobs : int, optional (default=-1)
+        The number of parallel workers to use.
+
+    Returns
+    -------
+    paths : list
+        List of all simple paths found.
+    """
+
+    # Prepare source list
+    if not isinstance(source, (list, tuple, set)):
+        sources = [source]
+    else:
+        sources = list(source)
+
+    # Default chunking
+    if get_chunks is None:
+        get_chunks = default_chunker
+
+    chunks = get_chunks(sources)
+
+    def _worker(src_chunk):
+        local_paths = []
+        for s in src_chunk:
+            # Use original NetworkX implementation for each chunk
+            local_paths.extend(nx.all_simple_paths(G, s, target=target, cutoff=cutoff))
+        return local_paths
+
+    # Run jobs in parallel
+    results = Parallel(n_jobs=n_jobs, prefer="threads")(
+        delayed(_worker)(chunk) for chunk in chunks
+    )
+
+    # Combine all results
+    all_paths = []
+    for part in results:
+        all_paths.extend(part)
+
+    return all_paths
+
